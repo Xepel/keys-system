@@ -12,6 +12,7 @@
     .toast.show { transform: translateX(0); }
     .spinner { border: 3px solid #e2e8f0; border-top: 3px solid #6366f1; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .key-detail-modal { transition: all 0.3s; }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen p-4 md:p-8 font-sans antialiased">
@@ -99,6 +100,15 @@
     </div>
   </div>
 
+  <!-- MODAL for User Keys Management -->
+  <div id="keys-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-auto p-6 relative">
+      <button id="close-modal" class="absolute top-3 right-4 text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+      <h2 id="modal-title" class="text-xl font-bold mb-4">Keys for <span id="modal-user-name"></span></h2>
+      <div id="modal-keys-list" class="space-y-2"></div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="fixed top-5 right-5 bg-white shadow-2xl rounded-xl p-4 border-l-4 border-green-500 max-w-sm toast z-50">
     <div class="flex items-center gap-3">
@@ -111,13 +121,15 @@
     (function() {
       "use strict";
 
-      // ⚠️ अपनी नई Reset की हुई Anon Key यहाँ डालें
+      // =============================================================
+      // CONFIG (अपनी नई Reset की हुई Anon Key से बदलें)
+      // =============================================================
       const SUPABASE_URL = 'https://pvqihrwralsyehmtahne.supabase.co';
       const SUPABASE_ANON_KEY = 'sb_publishable_oX6nBRSzmPil25mO_YQlOA_qnjADGNa'; // <-- बदलें
 
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      // DOM Refs
+      // DOM refs
       const authSection = document.getElementById('auth-section');
       const dashboard = document.getElementById('dashboard');
       const userEmailDisplay = document.getElementById('user-email-display');
@@ -137,7 +149,13 @@
       const toast = document.getElementById('toast');
       const toastIcon = document.getElementById('toast-icon');
       const toastMessage = document.getElementById('toast-message');
+      const modal = document.getElementById('keys-modal');
+      const modalTitle = document.getElementById('modal-title');
+      const modalUserName = document.getElementById('modal-user-name');
+      const modalKeysList = document.getElementById('modal-keys-list');
+      const closeModal = document.getElementById('close-modal');
 
+      // Toast
       function showToast(msg, isError = false) {
         toast.classList.remove('border-green-500', 'border-red-500');
         if (isError) {
@@ -211,23 +229,19 @@
         genResult.classList.add('hidden');
 
         try {
-          // 1. Name से User ID ढूंढें या बनाएँ (अब Email नहीं)
           const { data: userId, error: userError } = await supabase.rpc('admin_get_or_create_user_by_name', { p_name: name });
           if (userError) throw new Error('Error: ' + userError.message);
           if (!userId) throw new Error('Could not create/find user');
 
-          // 2. Expiry Calculate
           const now = new Date();
           let validUntil = new Date(now);
           if (type === 'minutes') validUntil.setMinutes(now.getMinutes() + duration);
           else if (type === 'hours') validUntil.setHours(now.getHours() + duration);
           else if (type === 'days') validUntil.setDate(now.getDate() + duration);
 
-          // 3. Key Generate
           const keyValue = 'K-' + Math.random().toString(36).substring(2, 6).toUpperCase() +
                            '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
 
-          // 4. Insert
           const { error } = await supabase
             .from('keys')
             .insert([{
@@ -289,16 +303,21 @@
               <td class="px-4 py-3 font-semibold">${user.key_count}</td>
               <td class="px-4 py-3 text-xs text-gray-500">${user.last_key_date ? new Date(user.last_key_date).toLocaleDateString() : 'Never'}</td>
               <td class="px-4 py-3">
-                <button class="view-keys-btn text-indigo-600 hover:text-indigo-800 text-xs font-medium" data-userid="${user.user_id}">View Keys</button>
+                <button class="manage-keys-btn text-indigo-600 hover:text-indigo-800 text-xs font-medium" data-userid="${user.user_id}" data-username="${user.name}">
+                  <i class="fas fa-edit"></i> Manage Keys
+                </button>
               </td>
             </tr>`;
           }
           html += `</tbody></table>`;
           userListContainer.innerHTML = html;
 
-          document.querySelectorAll('.view-keys-btn').forEach(btn => {
+          // Attach click listeners to "Manage Keys"
+          document.querySelectorAll('.manage-keys-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
-              viewUserKeys(this.getAttribute('data-userid'));
+              const userId = this.getAttribute('data-userid');
+              const userName = this.getAttribute('data-username');
+              openManageModal(userId, userName);
             });
           });
         } catch (err) {
@@ -307,20 +326,99 @@
         }
       }
 
-      // View Keys
-      async function viewUserKeys(userId) {
+      // Manage Modal
+      async function openManageModal(userId, userName) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modalUserName.innerText = userName;
+        modalKeysList.innerHTML = `<div class="flex justify-center py-6"><div class="spinner"></div></div>`;
+
         try {
-          const { data, error } = await supabase.from('keys').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+          const { data, error } = await supabase.rpc('admin_get_user_keys', { p_user_id: userId });
           if (error) throw new Error(error.message);
-          if (!data || data.length === 0) { alert('No keys found.'); return; }
-          let msg = '📋 Keys:\n-------------------\n';
+
+          if (!data || data.length === 0) {
+            modalKeysList.innerHTML = `<p class="text-gray-400 text-center">No keys found for this user.</p>`;
+            return;
+          }
+
+          let html = '';
           data.forEach(k => {
-            const status = (k.is_active && new Date(k.valid_until) > new Date()) ? '✅ Active' : '❌ Expired';
-            msg += `\n🔑 ${k.key_value}\n   ${k.duration} ${k.subscription_type} | ${status}\n   Expires: ${new Date(k.valid_until).toLocaleString()}\n`;
+            const now = new Date();
+            const validUntil = new Date(k.valid_until);
+            const isExpired = now > validUntil;
+            const status = k.is_active ? (isExpired ? 'Expired' : 'Active') : 'Inactive';
+            const statusColor = status === 'Active' ? 'text-green-600' : 'text-red-500';
+
+            html += `<div class="border rounded-lg p-3 mb-2 flex flex-wrap justify-between items-center gap-2">
+              <div>
+                <span class="font-mono font-bold text-sm">${k.key_value}</span>
+                <span class="text-xs ml-2 ${statusColor}">${status}</span>
+                <br>
+                <span class="text-xs text-gray-500">${k.duration} ${k.subscription_type} | Valid till ${validUntil.toLocaleString()}</span>
+              </div>
+              <div class="flex gap-1">
+                <button onclick="adminExtendKey('${k.id}')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded text-xs">+1 Day</button>
+                <button onclick="adminToggleKey('${k.id}', ${!k.is_active})" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-2 py-1 rounded text-xs">
+                  ${k.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+                <button onclick="adminDeleteKey('${k.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-xs">Delete</button>
+              </div>
+            </div>`;
           });
-          alert(msg);
-        } catch (err) { showToast('Error: ' + err.message, true); }
+          modalKeysList.innerHTML = html;
+        } catch (err) {
+          modalKeysList.innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
+        }
       }
+
+      // Admin actions (exposed globally for inline onclick)
+      window.adminExtendKey = async function(keyId) {
+        try {
+          const { error } = await supabase.rpc('admin_extend_key', { p_key_id: keyId, p_extra_days: 1 });
+          if (error) throw new Error(error.message);
+          showToast('Key extended by 1 day');
+          // Refresh modal content
+          const userId = document.querySelector('.manage-keys-btn')?.getAttribute('data-userid');
+          if (userId) openManageModal(userId, modalUserName.innerText);
+          fetchData();
+        } catch (err) { showToast(err.message, true); }
+      };
+
+      window.adminToggleKey = async function(keyId, setActive) {
+        try {
+          const { error } = await supabase.rpc('admin_toggle_key_status', { p_key_id: keyId, p_set_active: setActive });
+          if (error) throw new Error(error.message);
+          showToast(`Key ${setActive ? 'activated' : 'deactivated'}`);
+          const userId = document.querySelector('.manage-keys-btn')?.getAttribute('data-userid');
+          if (userId) openManageModal(userId, modalUserName.innerText);
+          fetchData();
+        } catch (err) { showToast(err.message, true); }
+      };
+
+      window.adminDeleteKey = async function(keyId) {
+        if (!confirm('Delete this key permanently?')) return;
+        try {
+          const { error } = await supabase.rpc('admin_delete_key', { p_key_id: keyId });
+          if (error) throw new Error(error.message);
+          showToast('Key deleted');
+          const userId = document.querySelector('.manage-keys-btn')?.getAttribute('data-userid');
+          if (userId) openManageModal(userId, modalUserName.innerText);
+          fetchData();
+        } catch (err) { showToast(err.message, true); }
+      };
+
+      // Modal close
+      closeModal.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+      });
 
       // Init
       async function init() {
