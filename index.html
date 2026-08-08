@@ -4,74 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Key Management System</title>
-  
-  <!-- Tailwind CSS CDN (Development Only) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  
   <style>
-    /* Toast Animation */
-    .toast {
-      transition: all 0.4s ease;
-      transform: translateX(120%);
-    }
-    .toast.show {
-      transform: translateX(0);
-    }
-    /* Spinner */
-    .spinner {
-      border: 3px solid #e2e8f0;
-      border-top: 3px solid #6366f1;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    /* Hide favicon error (optional) */
-    .no-favicon { display: none; }
+    .toast { transition: all 0.4s ease; transform: translateX(120%); }
+    .toast.show { transform: translateX(0); }
+    .spinner { border: 3px solid #e2e8f0; border-top: 3px solid #6366f1; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen p-4 md:p-8 font-sans antialiased">
 
   <div id="app" class="max-w-7xl mx-auto">
-    <!-- ============================================== -->
-    <!-- AUTH SECTION (Login / Signup) -->
-    <!-- ============================================== -->
+    <!-- AUTH SECTION -->
     <div id="auth-section" class="bg-white rounded-2xl shadow-xl p-8 max-w-md mx-auto mt-20">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
           <i class="fas fa-lock text-indigo-600 text-2xl"></i>
         </div>
         <h1 class="text-2xl font-bold text-gray-800">Admin Login</h1>
-        <p class="text-gray-500 text-sm">Manage License Keys & Users</p>
+        <p class="text-gray-500 text-sm">Manage License Keys & Customers</p>
       </div>
-      
-      <!-- Form में Wrapped किया ताकि Password Warning खत्म हो -->
-      <form id="auth-form" class="space-y-3" autocomplete="off">
-        <input id="login-email" type="email" placeholder="Email Address" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+      <form id="auth-form" class="space-y-3">
+        <input id="login-email" type="email" placeholder="Admin Email" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
         <input id="login-password" type="password" placeholder="Password" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
         <button id="login-btn" type="button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2">
           <i class="fas fa-sign-in-alt"></i> Login
         </button>
         <button id="signup-btn" type="button" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2">
-          <i class="fas fa-user-plus"></i> Sign Up
+          <i class="fas fa-user-plus"></i> Sign Up (Admin)
         </button>
         <div id="auth-error" class="text-red-500 text-sm text-center hidden"></div>
       </form>
     </div>
 
-    <!-- ============================================== -->
-    <!-- DASHBOARD (Logged In) -->
-    <!-- ============================================== -->
+    <!-- DASHBOARD -->
     <div id="dashboard" class="hidden">
       <!-- Header -->
       <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow mb-6">
@@ -92,8 +60,8 @@
         <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"><i class="fas fa-key text-indigo-600"></i> Generate New License Key</h2>
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">User Email *</label>
-            <input id="target-email" type="email" placeholder="user@example.com" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">User Name *</label>
+            <input id="target-name" type="text" placeholder="e.g., rajesh, client_1" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
@@ -116,10 +84,10 @@
         <div id="gen-result" class="mt-4 text-sm font-mono bg-gray-50 p-3 rounded-xl hidden border border-gray-200"></div>
       </div>
 
-      <!-- Users & Keys Table -->
+      <!-- Customers & Keys Table -->
       <div class="bg-white rounded-2xl shadow overflow-hidden">
         <div class="p-6 border-b border-gray-100 flex flex-wrap justify-between items-center gap-2">
-          <h2 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-users text-indigo-600"></i> Users & Keys</h2>
+          <h2 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-users text-indigo-600"></i> Customers & Keys</h2>
           <button id="refresh-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl transition text-sm flex items-center gap-2">
             <i class="fas fa-sync-alt"></i> Refresh
           </button>
@@ -131,9 +99,7 @@
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- TOAST NOTIFICATION -->
-  <!-- ============================================== -->
+  <!-- TOAST -->
   <div id="toast" class="fixed top-5 right-5 bg-white shadow-2xl rounded-xl p-4 border-l-4 border-green-500 max-w-sm toast z-50">
     <div class="flex items-center gap-3">
       <div id="toast-icon" class="text-green-500 text-xl"><i class="fas fa-check-circle"></i></div>
@@ -141,52 +107,38 @@
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- JAVASCRIPT (पूरी तरह से Safe और Conflict-Free) -->
-  <!-- ============================================== -->
   <script>
     (function() {
       "use strict";
 
-      // =============================================================
-      // 1. CONFIGURATION (⚠️ इन्हें अपनी नई Reset की हुई Credentials से बदलें)
-      // =============================================================
+      // ⚠️ अपनी नई Reset की हुई Anon Key यहाँ डालें
       const SUPABASE_URL = 'https://pvqihrwralsyehmtahne.supabase.co';
-      const SUPABASE_ANON_KEY = 'sb_publishable_oX6nBRSzmPil25mO_YQlOA_qnjADGNa'; // <-- इसे Reset करके बदलें
+      const SUPABASE_ANON_KEY = 'sb_publishable_oX6nBRSzmPil25mO_YQlOA_qnjADGNa'; // <-- बदलें
 
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      // =============================================================
-      // 2. DOM REFS
-      // =============================================================
+      // DOM Refs
       const authSection = document.getElementById('auth-section');
       const dashboard = document.getElementById('dashboard');
       const userEmailDisplay = document.getElementById('user-email-display');
       const authError = document.getElementById('auth-error');
-      
       const loginEmail = document.getElementById('login-email');
       const loginPassword = document.getElementById('login-password');
       const loginBtn = document.getElementById('login-btn');
       const signupBtn = document.getElementById('signup-btn');
       const logoutBtn = document.getElementById('logout-btn');
-
-      const targetEmail = document.getElementById('target-email');
+      const targetName = document.getElementById('target-name');
       const subType = document.getElementById('sub-type');
       const subDuration = document.getElementById('sub-duration');
       const generateBtn = document.getElementById('generate-btn');
       const genResult = document.getElementById('gen-result');
-
       const userListContainer = document.getElementById('user-list-container');
       const refreshBtn = document.getElementById('refresh-btn');
-
       const toast = document.getElementById('toast');
       const toastIcon = document.getElementById('toast-icon');
       const toastMessage = document.getElementById('toast-message');
 
-      // =============================================================
-      // 3. TOAST SYSTEM
-      // =============================================================
-      function showToast(message, isError = false) {
+      function showToast(msg, isError = false) {
         toast.classList.remove('border-green-500', 'border-red-500');
         if (isError) {
           toast.classList.add('border-red-500');
@@ -195,130 +147,87 @@
           toast.classList.add('border-green-500');
           toastIcon.innerHTML = '<i class="fas fa-check-circle text-green-500"></i>';
         }
-        toastMessage.innerText = message;
+        toastMessage.innerText = msg;
         toast.classList.add('show');
         clearTimeout(toast._timer);
         toast._timer = setTimeout(() => toast.classList.remove('show'), 4000);
       }
 
-      // =============================================================
-      // 4. UI HELPERS
-      // =============================================================
       function showDashboard(email) {
         authSection.classList.add('hidden');
         dashboard.classList.remove('hidden');
         userEmailDisplay.innerText = email || 'Admin';
       }
 
-      function showLoader(container) {
-        container.innerHTML = `<div class="flex justify-center py-10"><div class="spinner"></div></div>`;
-      }
-
-      function setButtonLoading(btn, loading) {
+      function setButtonLoading(btn, loading, defaultHtml) {
         if (loading) {
           btn.disabled = true;
           btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         } else {
           btn.disabled = false;
-          btn.innerHTML = btn.id === 'login-btn' ? '<i class="fas fa-sign-in-alt"></i> Login' :
-                          btn.id === 'signup-btn' ? '<i class="fas fa-user-plus"></i> Sign Up' :
-                          btn.id === 'generate-btn' ? '<i class="fas fa-bolt"></i> Generate' : 'Submit';
+          btn.innerHTML = defaultHtml || btn.innerHTML;
         }
       }
 
-      // =============================================================
-      // 5. AUTHENTICATION FUNCTIONS
-      // =============================================================
+      // Auth
       async function handleLogin() {
         const email = loginEmail.value.trim();
         const password = loginPassword.value;
         authError.classList.add('hidden');
-
-        if (!email || !password) {
-          authError.innerText = 'Please enter email and password.';
-          authError.classList.remove('hidden');
-          return;
-        }
-
-        setButtonLoading(loginBtn, true);
+        if (!email || !password) { authError.innerText = 'Please enter email and password.'; authError.classList.remove('hidden'); return; }
+        setButtonLoading(loginBtn, true, '<i class="fas fa-sign-in-alt"></i> Login');
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         setButtonLoading(loginBtn, false);
-
-        if (error) {
-          authError.innerText = 'Login failed: ' + error.message;
-          authError.classList.remove('hidden');
-          showToast('Login failed: ' + error.message, true);
-          return;
-        }
+        if (error) { authError.innerText = 'Login failed: ' + error.message; authError.classList.remove('hidden'); showToast('Login failed', true); return; }
         showToast('Welcome back!');
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          showDashboard(session.user.email);
-          fetchData();
-        }
+        if (session) { showDashboard(session.user.email); fetchData(); }
       }
 
       async function handleSignup() {
         const email = loginEmail.value.trim();
         const password = loginPassword.value;
         authError.classList.add('hidden');
-
-        if (!email || !password) {
-          authError.innerText = 'Please enter email and password.';
-          authError.classList.remove('hidden');
-          return;
-        }
-
-        setButtonLoading(signupBtn, true);
+        if (!email || !password) { authError.innerText = 'Please enter email and password.'; authError.classList.remove('hidden'); return; }
+        setButtonLoading(signupBtn, true, '<i class="fas fa-user-plus"></i> Sign Up (Admin)');
         const { error } = await supabase.auth.signUp({ email, password });
         setButtonLoading(signupBtn, false);
-
-        if (error) {
-          authError.innerText = 'Signup failed: ' + error.message;
-          authError.classList.remove('hidden');
-          showToast('Signup failed: ' + error.message, true);
-          return;
-        }
-        showToast('Account created! Please check your email to confirm (if required).');
+        if (error) { authError.innerText = 'Signup failed: ' + error.message; authError.classList.remove('hidden'); showToast('Signup failed', true); return; }
+        showToast('Account created! Please check email to confirm.');
       }
 
-      async function handleLogout() {
-        await supabase.auth.signOut();
-        location.reload();
-      }
+      async function handleLogout() { await supabase.auth.signOut(); location.reload(); }
 
-      // =============================================================
-      // 6. GENERATE KEY
-      // =============================================================
+      // Generate Key
       async function handleGenerateKey() {
-        const email = targetEmail.value.trim();
+        const name = targetName.value.trim();
         const type = subType.value;
         const duration = parseInt(subDuration.value);
 
-        if (!email) { showToast('Please enter User Email', true); return; }
+        if (!name) { showToast('Please enter User Name', true); return; }
         if (duration < 1) { showToast('Duration must be at least 1', true); return; }
 
-        setButtonLoading(generateBtn, true);
+        setButtonLoading(generateBtn, true, '<i class="fas fa-bolt"></i> Generate');
         genResult.classList.add('hidden');
 
         try {
-          // Step A: Get User ID via RPC
-          const { data: userId, error: userError } = await supabase.rpc('admin_get_user_id', { p_email: email });
-          if (userError) throw new Error('User not found or unauthorized: ' + userError.message);
-          if (!userId) throw new Error('No user found with this email');
+          // 1. Name से User ID ढूंढें या बनाएँ (अब Email नहीं)
+          const { data: userId, error: userError } = await supabase.rpc('admin_get_or_create_user_by_name', { p_name: name });
+          if (userError) throw new Error('Error: ' + userError.message);
+          if (!userId) throw new Error('Could not create/find user');
 
-          // Step B: Calculate expiry
+          // 2. Expiry Calculate
           const now = new Date();
           let validUntil = new Date(now);
           if (type === 'minutes') validUntil.setMinutes(now.getMinutes() + duration);
           else if (type === 'hours') validUntil.setHours(now.getHours() + duration);
           else if (type === 'days') validUntil.setDate(now.getDate() + duration);
 
-          // Step C: Generate unique key (format: K-XXXX-XXXX)
+          // 3. Key Generate
           const keyValue = 'K-' + Math.random().toString(36).substring(2, 6).toUpperCase() +
                            '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
 
-          // Step D: Insert key
+          // 4. Insert
           const { error } = await supabase
             .from('keys')
             .insert([{
@@ -332,20 +241,17 @@
 
           if (error) throw new Error('DB Error: ' + error.message);
 
-          // Success
           genResult.classList.remove('hidden');
           genResult.innerHTML = `
-            <div class="flex items-center gap-2 text-green-600">
-              <i class="fas fa-check-circle"></i> Key Generated Successfully!
-            </div>
+            <div class="flex items-center gap-2 text-green-600"><i class="fas fa-check-circle"></i> Key Generated!</div>
             <div class="bg-white p-2 rounded border mt-1 flex justify-between items-center">
               <span class="font-bold tracking-wider text-indigo-700">${keyValue}</span>
               <span class="text-xs text-gray-500">Valid till ${validUntil.toLocaleString()}</span>
             </div>
           `;
-          showToast(`Key ${keyValue} generated for ${email}`);
-          targetEmail.value = '';
-          fetchData(); // Refresh list
+          showToast(`Key ${keyValue} generated for ${name}`);
+          targetName.value = '';
+          fetchData();
         } catch (err) {
           showToast(err.message, true);
           genResult.classList.add('hidden');
@@ -354,27 +260,23 @@
         }
       }
 
-      // =============================================================
-      // 7. FETCH USERS LIST (Admin RPC)
-      // =============================================================
+      // Fetch Customers
       async function fetchData() {
-        showLoader(userListContainer);
-
+        userListContainer.innerHTML = `<div class="flex justify-center py-10"><div class="spinner"></div></div>`;
         try {
-          const { data, error } = await supabase.rpc('admin_get_all_users');
+          const { data, error } = await supabase.rpc('admin_get_all_customers');
           if (error) throw new Error(error.message);
 
           if (!data || data.length === 0) {
-            userListContainer.innerHTML = `<div class="text-gray-400 p-4 text-center">No users found.</div>`;
+            userListContainer.innerHTML = `<div class="text-gray-400 p-4 text-center">No customers found.</div>`;
             return;
           }
 
           let html = `<table class="min-w-full divide-y divide-gray-200 text-sm">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-gray-500">User</th>
-                <th class="px-4 py-3 text-left font-medium text-gray-500">Role</th>
-                <th class="px-4 py-3 text-left font-medium text-gray-500">Keys</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500">Customer Name</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500">Keys Count</th>
                 <th class="px-4 py-3 text-left font-medium text-gray-500">Last Key</th>
                 <th class="px-4 py-3 text-left font-medium text-gray-500">Action</th>
               </tr>
@@ -383,13 +285,7 @@
 
           for (let user of data) {
             html += `<tr class="hover:bg-gray-50 transition">
-              <td class="px-4 py-3">
-                <div class="font-medium">${user.full_name || 'No Name'}</div>
-                <div class="text-xs text-gray-400">${user.email}</div>
-              </td>
-              <td class="px-4 py-3">
-                <span class="px-2 py-1 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}">${user.role}</span>
-              </td>
+              <td class="px-4 py-3 font-medium">${user.name}</td>
               <td class="px-4 py-3 font-semibold">${user.key_count}</td>
               <td class="px-4 py-3 text-xs text-gray-500">${user.last_key_date ? new Date(user.last_key_date).toLocaleDateString() : 'Never'}</td>
               <td class="px-4 py-3">
@@ -397,91 +293,51 @@
               </td>
             </tr>`;
           }
-
           html += `</tbody></table>`;
           userListContainer.innerHTML = html;
 
-          // Attach click listeners to "View Keys" buttons
           document.querySelectorAll('.view-keys-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
-              const userId = this.getAttribute('data-userid');
-              viewUserKeys(userId);
+              viewUserKeys(this.getAttribute('data-userid'));
             });
           });
-
         } catch (err) {
-          userListContainer.innerHTML = `<div class="text-red-500 p-4">⚠️ ${err.message}. Make sure your profile has role='admin' and RPC functions are correct.</div>`;
-          showToast('Failed to load users: ' + err.message, true);
+          userListContainer.innerHTML = `<div class="text-red-500 p-4">⚠️ ${err.message}</div>`;
+          showToast('Failed to load: ' + err.message, true);
         }
       }
 
-      // =============================================================
-      // 8. VIEW USER KEYS (Popup)
-      // =============================================================
+      // View Keys
       async function viewUserKeys(userId) {
         try {
-          const { data, error } = await supabase
-            .from('keys')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
+          const { data, error } = await supabase.from('keys').select('*').eq('user_id', userId).order('created_at', { ascending: false });
           if (error) throw new Error(error.message);
-          if (!data || data.length === 0) {
-            alert('No keys found for this user.');
-            return;
-          }
-
-          let msg = '📋 Keys for User:\n-------------------\n';
+          if (!data || data.length === 0) { alert('No keys found.'); return; }
+          let msg = '📋 Keys:\n-------------------\n';
           data.forEach(k => {
-            const status = (k.is_active && new Date(k.valid_until) > new Date()) ? '✅ Active' : '❌ Inactive/Expired';
+            const status = (k.is_active && new Date(k.valid_until) > new Date()) ? '✅ Active' : '❌ Expired';
             msg += `\n🔑 ${k.key_value}\n   ${k.duration} ${k.subscription_type} | ${status}\n   Expires: ${new Date(k.valid_until).toLocaleString()}\n`;
           });
           alert(msg);
-        } catch (err) {
-          showToast('Error fetching keys: ' + err.message, true);
-        }
+        } catch (err) { showToast('Error: ' + err.message, true); }
       }
 
-      // =============================================================
-      // 9. INITIALIZATION (Page Load)
-      // =============================================================
+      // Init
       async function init() {
-        // Check session
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          showDashboard(session.user.email);
-          await fetchData();
-        }
+        if (session) { showDashboard(session.user.email); await fetchData(); }
 
-        // --- Attach Event Listeners ---
-        // Auth
+        document.getElementById('auth-form').addEventListener('submit', (e) => { e.preventDefault(); handleLogin(); });
         loginBtn.addEventListener('click', handleLogin);
         signupBtn.addEventListener('click', handleSignup);
         logoutBtn.addEventListener('click', handleLogout);
-        
-        // Allow "Enter" key on auth form
-        document.getElementById('auth-form').addEventListener('submit', function(e) {
-          e.preventDefault();
-          handleLogin();
-        });
-
-        // Generate
         generateBtn.addEventListener('click', handleGenerateKey);
-
-        // Refresh
         refreshBtn.addEventListener('click', fetchData);
       }
 
-      // Run when DOM is ready
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-      } else {
-        init();
-      }
-
-    })(); // End of IIFE
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
   </script>
-
 </body>
 </html>
