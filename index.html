@@ -1,0 +1,28 @@
+// SupabaseManager.kt (वही रहेगा)
+object SupabaseManager {
+    private const val SUPABASE_URL = "https://pvqihrwralsyehmtahne.supabase.co"
+    private const val SUPABASE_ANON_KEY = "YOUR_NEW_RESETTED_ANON_KEY" // ⚠️ नया Key डालें
+
+    val client: SupabaseClient = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY) {
+        install(Postgrest)
+        install(GoTrue)
+    }
+}
+
+// KeyVerification.kt (अब RPC Call करेगा)
+import io.github.jan.supabase.rpc.rpc
+
+suspend fun verifyKey(inputKey: String): Boolean {
+    return withContext(Dispatchers.IO) {
+        try {
+            // RPC Function को Call करें जो सिर्फ True/False return करेगा
+            val result = SupabaseManager.client.rpc("public_verify_key")
+                .invoke(mapOf("p_key" to inputKey.uppercase())) // Key को Uppercase में भेजें
+                .decodeAs<Boolean>()
+            return@withContext result
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return@withContext false
+        }
+    }
+}
